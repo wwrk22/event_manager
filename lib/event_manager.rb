@@ -1,18 +1,17 @@
+require 'csv'
+
 puts "Event Manager initialized"
 
-# 1. Load the file
-filename = './event_attendees.csv'
+contents = CSV.open(
+  './event_attendees.csv',
+  headers: true,
+  header_converters: :symbol
+)
 
-if File.exists? filename
-  file = File.open('./event_attendees.csv')
-  event_attendees = file.readlines
-else
-  puts "Error: #{filename} does not exist."
+contents.each do |row|
+  name = row[:first_name]
+  zipcode = row[:zipcode]
+  puts name + ", " + zipcode.to_s
 end
 
-# Skip the header row at index 0.
-event_attendees[1..].each do |line|
-  columns = line.split(',')
-  name = columns[2]
-  p(name + "\n")
-end
+contents.close
