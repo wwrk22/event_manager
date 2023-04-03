@@ -3,6 +3,20 @@ require 'google/apis/civicinfo_v2'
 require 'erb'
 
 
+def clean_phone_num(num)
+  clean_num = ""
+  num.each_char { |char| clean_num << char if char =~ /\d/ }
+
+  if clean_num.length == 10
+    return clean_num
+  elsif clean_num.length == 11 && clean_num[0] == '1'
+    return clean_num[1..10]
+  else
+    return "Invalid phone number"
+  end
+end
+
+
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5, '0')[0..4]
 end
@@ -32,7 +46,7 @@ def save_thank_you_letter(id, form_letter)
   File.open(filename, 'w') { |file| file.puts form_letter }
 end
 
-
+# Setup
 puts "Event Manager initialized"
 
 contents = CSV.open(
@@ -44,10 +58,15 @@ contents = CSV.open(
 template_letter = File.read('./form_letter.erb')
 erb_template = ERB.new template_letter
 
+# Process data and write letters
 contents.each do |row|
   id = row[0]
   name = row[:first_name]
   zipcode = clean_zipcode(row[:zipcode])
+
+  phone_num = clean_phone_num(row[:homephone])
+  puts phone_num
+
   legislators = legislators_by_zipcode(zipcode)
   form_letter = erb_template.result(binding)
   save_thank_you_letter(id, form_letter)
