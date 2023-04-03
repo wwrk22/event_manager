@@ -4,6 +4,7 @@ require 'erb'
 
 
 @times = Array.new(24, 0)
+@days = Array.new(7, 0)
 
 def clean_phone_num(num)
   clean_num = ""
@@ -24,15 +25,33 @@ def clean_zipcode(zipcode)
 end
 
 
-def time_target(datetime)
-  formatted_datetime = Time.strptime(datetime, "%m/%d/%y %H:%M")
+def format_datetime(datetime)
+  Time.strptime(datetime, "%m/%d/%y %H:%M")
+end
+
+
+def compute_peak_hour(datetime)
+  formatted_datetime = format_datetime(datetime)
   hour = formatted_datetime.hour
   @times[hour] += 1
 end
 
 
+def compute_peak_day(datetime)
+  formatted_datetime = format_datetime(datetime)
+  day = formatted_datetime.wday
+  @days[day] += 1
+end
+
+
 def get_peak_hour
   max_with_index = @times.each_with_index.max
+  max_with_index[1]
+end
+
+
+def get_peak_day_of_week
+  max_with_index = @days.each_with_index.max
   max_with_index[1]
 end
 
@@ -79,7 +98,8 @@ contents.each do |row|
   name = row[:first_name]
   zipcode = clean_zipcode(row[:zipcode])
   phone_num = clean_phone_num(row[:homephone])
-  time_target(row[:regdate])
+  compute_peak_hour(row[:regdate])
+  compute_peak_day(row[:regdate])
 
   legislators = legislators_by_zipcode(zipcode)
   form_letter = erb_template.result(binding)
@@ -89,3 +109,4 @@ end
 contents.close
 
 puts "Peak registration hour is #{get_peak_hour} o'clock."
+puts "Peak registration day of the week is #{get_peak_day_of_week}."
