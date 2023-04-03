@@ -3,20 +3,27 @@ require 'google/apis/civicinfo_v2'
 require 'erb'
 
 
-@times = Array.new(24, 0)
+@hours = Array.new(24, 0)
 @days = Array.new(7, 0)
 
-def clean_phone_num(num)
-  clean_num = ""
-  num.each_char { |char| clean_num << char if char =~ /\d/ }
+def filter_number(number)
+  number.each_char.reduce("") do |clean_number, digit|
+    (digit =~ /\d/) ? (clean_number << digit) : clean_number
+  end 
+end
 
-  if clean_num.length == 10
-    return clean_num
-  elsif clean_num.length == 11 && clean_num[0] == '1'
-    return clean_num[1..10]
-  else
-    return "Invalid phone number"
-  end
+
+def fix_filtered_number(filtered_number)
+  return filtered_number if filtered_number.length == 10
+  has_intl_code = filtered_number.length == 11 && filtered_number[0] == '1'
+  return filtered_number[1..10] if has_intl_code
+  return "Invalid phone number"
+end
+
+
+def clean_phone_number(number)
+  filtered_number = filter_number(number)
+  return fix_filtered_number(filtered_number)
 end
 
 
@@ -33,7 +40,7 @@ end
 def compute_peak_hour(datetime)
   formatted_datetime = format_datetime(datetime)
   hour = formatted_datetime.hour
-  @times[hour] += 1
+  @hours[hour] += 1
 end
 
 
@@ -45,7 +52,7 @@ end
 
 
 def get_peak_hour
-  max_with_index = @times.each_with_index.max
+  max_with_index = @hours.each_with_index.max
   max_with_index[1]
 end
 
@@ -97,7 +104,7 @@ contents.each do |row|
   id = row[0]
   name = row[:first_name]
   zipcode = clean_zipcode(row[:zipcode])
-  phone_num = clean_phone_num(row[:homephone])
+  phone_num = clean_phone_number(row[:homephone])
   compute_peak_hour(row[:regdate])
   compute_peak_day(row[:regdate])
 
