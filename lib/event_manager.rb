@@ -3,6 +3,8 @@ require 'google/apis/civicinfo_v2'
 require 'erb'
 
 
+@times = Array.new(24, 0)
+
 def clean_phone_num(num)
   clean_num = ""
   num.each_char { |char| clean_num << char if char =~ /\d/ }
@@ -19,6 +21,19 @@ end
 
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5, '0')[0..4]
+end
+
+
+def time_target(datetime)
+  formatted_datetime = Time.strptime(datetime, "%m/%d/%y %H:%M")
+  hour = formatted_datetime.hour
+  @times[hour] += 1
+end
+
+
+def get_peak_hour
+  max_with_index = @times.each_with_index.max
+  max_with_index[1]
 end
 
 
@@ -63,9 +78,8 @@ contents.each do |row|
   id = row[0]
   name = row[:first_name]
   zipcode = clean_zipcode(row[:zipcode])
-
   phone_num = clean_phone_num(row[:homephone])
-  puts phone_num
+  time_target(row[:regdate])
 
   legislators = legislators_by_zipcode(zipcode)
   form_letter = erb_template.result(binding)
@@ -73,3 +87,5 @@ contents.each do |row|
 end
 
 contents.close
+
+puts "Peak registration hour is #{get_peak_hour} o'clock."
