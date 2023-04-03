@@ -1,14 +1,10 @@
 require 'csv'
 require 'google/apis/civicinfo_v2'
+require 'erb'
 
 
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5, '0')[0..4]
-end
-
-
-def collect_legislator_names(legislators)
-  legislators.map(&:name).join(", ")
 end
 
 
@@ -17,17 +13,23 @@ def legislators_by_zipcode(zipcode)
   civic_info.key = 'AIzaSyClRzDqDh5MsXwnCWi0kOiiBivP6JsSyBw'
 
   begin
-    legislators = civic_info.representative_info_by_address(
+    return civic_info.representative_info_by_address(
       address: zipcode,
       levels: 'country',
       roles: ['legislatorUpperBody', 'legislatorLowerBody']
-    )
-    return collect_legislator_names(legislators.officials)
+    ).officials
   rescue Google::Apis::ClientError
     return "Failed to find representative for given inforamation. "\
     "Find your representative at "\
     "www.commoncause.org/take-action/find-elected-officials"
   end
+end
+
+
+def save_thank_you_letter(id, form_letter) 
+  Dir.mkdir('output') unless Dir.exist?('output')
+  filename = "./output/thanks_#{id}.html"
+  File.open(filename, 'w') { |file| file.puts form_letter }
 end
 
 
@@ -39,11 +41,16 @@ contents = CSV.open(
   header_converters: :symbol
 )
 
+template_letter = File.read('./form_letter.erb')
+erb_template = ERB.new template_letter
+
 contents.each do |row|
+  id = row[0]
   name = row[:first_name]
   zipcode = clean_zipcode(row[:zipcode])
   legislators = legislators_by_zipcode(zipcode)
-  puts "#{name}, #{zipcode}, #{legislators}"
+  form_letter = erb_template.result(binding)
+  save_thank_you_letter(id, form_letter)
 end
 
 contents.close
